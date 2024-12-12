@@ -40,8 +40,8 @@
             width: 150px;
         }
         input[type="text"], input[type="number"] {
-            text-align: left; /* الكتابة على اليسار */
-            direction: ltr;   /* اتجاه الكتابة لليسار */
+            text-align: left;
+            direction: ltr;
         }
         button {
             display: block;
@@ -58,6 +58,12 @@
         }
         button:hover {
             background-color: #218838;
+        }
+        pre {
+            font-size: 8px; /* حجم النص أصغر بكثير */
+            font-family: 'Courier New', Courier, monospace; /* خط يشبه ترمكس */
+            white-space: pre-wrap;
+            word-wrap: break-word;
         }
     </style>
     <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
@@ -140,34 +146,19 @@
         const newFileName = document.getElementById('newFileName').value.trim();
 
         if (!inputFile || !newFileName) {
-            Swal.fire({
-                title: 'خطأ',
-                text: 'يرجى تحديد مسار الملف واسم الملف الجديد.',
-                icon: 'error',
-                confirmButtonText: 'موافق'
-            });
+            Swal.fire({ title: 'خطأ', text: 'يرجى تحديد مسار الملف واسم الملف الجديد.', icon: 'error', confirmButtonText: 'موافق' });
             return;
         }
 
         const namePattern = /^[a-zA-Z0-9_.-]{1,12}$/;
         if (!namePattern.test(newFileName)) {
-            Swal.fire({
-                title: 'خطأ',
-                text: 'اسم الملف يجب أن يكون كلمة واحدة فقط وأقصاها 12 حرفًا.',
-                icon: 'error',
-                confirmButtonText: 'موافق'
-            });
+            Swal.fire({ title: 'خطأ', text: 'اسم الملف يجب أن يكون كلمة واحدة فقط وأقصاها 12 حرفًا.', icon: 'error', confirmButtonText: 'موافق' });
             return;
         }
 
         const pathPattern = /^\/[a-zA-Z0-9_.-]+(\/[a-zA-Z0-9_.-]+)*\/?[a-zA-Z0-9_.-]+\.(mp3|wav|ogg|flac)$/;
         if (!pathPattern.test(inputFile)) {
-            Swal.fire({
-                title: 'خطأ',
-                text: 'يرجى إدخال مسار ملف صحيح بدون مسافات، مثل: /storage/emulated/0/w.mp3',
-                icon: 'error',
-                confirmButtonText: 'موافق'
-            });
+            Swal.fire({ title: 'خطأ', text: 'يرجى إدخال مسار ملف صحيح بدون مسافات، مثل: /storage/emulated/0/w.mp3', icon: 'error', confirmButtonText: 'موافق' });
             return;
         }
 
@@ -182,12 +173,7 @@
             : document.getElementById('silenceDuration').value;
 
         if (!silenceDuration || (document.getElementById('silenceDuration').value === "custom" && !document.getElementById('customSilenceDuration').value)) {
-            Swal.fire({
-                title: 'خطأ',
-                text: 'يرجى إدخال قيمة صحيحة لمدة الصمت.',
-                icon: 'error',
-                confirmButtonText: 'موافق'
-            });
+            Swal.fire({ title: 'خطأ', text: 'يرجى إدخال قيمة صحيحة لمدة الصمت.', icon: 'error', confirmButtonText: 'موافق' });
             return;
         }
 
@@ -196,12 +182,7 @@
             : document.getElementById('silenceVolume').value + "%";
 
         if (!silenceVolume || (document.getElementById('silenceVolume').value === "custom" && !document.getElementById('customSilenceVolume').value)) {
-            Swal.fire({
-                title: 'خطأ',
-                text: 'يرجى إدخال قيمة صحيحة لنسبة الصوت.',
-                icon: 'error',
-                confirmButtonText: 'موافق'
-            });
+            Swal.fire({ title: 'خطأ', text: 'يرجى إدخال قيمة صحيحة لنسبة الصوت.', icon: 'error', confirmButtonText: 'موافق' });
             return;
         }
 
@@ -209,12 +190,7 @@
         if (document.querySelector('input[name="silenceCount"]:checked').value === "custom") {
             silenceCount = document.getElementById('customSilenceCount').value;
             if (!silenceCount) {
-                Swal.fire({
-                    title: 'خطأ',
-                    text: 'يرجى إدخال قيمة صحيحة لمرات الصمت.',
-                    icon: 'error',
-                    confirmButtonText: 'موافق'
-                });
+                Swal.fire({ title: 'خطأ', text: 'يرجى إدخال قيمة صحيحة لمرات الصمت.', icon: 'error', confirmButtonText: 'موافق' });
                 return;
             }
         } else {
@@ -225,19 +201,9 @@
 
         Swal.fire({
             title: 'كود Sox',
-            text: code,
+            html: `<pre>${code}</pre>`,  // عرض الكود داخل عنصر <pre>
             icon: 'info',
-            showCancelButton: true,
-            confirmButtonText: 'نسخ الكود',
-            cancelButtonText: 'إغلاق'
-        }).then((result) => {
-            if (result.isConfirmed) {
-                navigator.clipboard.writeText(code).then(() => {
-                    Swal.fire('تم النسخ!', 'تم نسخ الكود إلى الحافظة.', 'success');
-                }, () => {
-                    Swal.fire('خطأ', 'فشل في نسخ الكود.', 'error');
-                });
-            }
+            confirmButtonText: 'موافق'
         });
     });
 
