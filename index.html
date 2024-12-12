@@ -1,0 +1,258 @@
+<!DOCTYPE html>
+<html lang="ar">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>إزالة الصمت باستخدام Sox</title>
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/sweetalert2@11/dist/sweetalert2.min.css">
+    <style>
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            margin: 20px;
+            direction: rtl;
+            background-color: #f4f4f4;
+            color: #333;
+        }
+        h1 {
+            text-align: center;
+            color: #4a4a4a;
+        }
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-bottom: 20px;
+            background-color: #fff;
+            box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
+        }
+        th, td {
+            border: 1px solid #ddd;
+            padding: 12px;
+            text-align: right;
+        }
+        th {
+            background-color: #007bff;
+            color: white;
+            text-align: left;
+            width: 300px;
+        }
+        td {
+            background-color: #ffffff;
+            width: 150px;
+        }
+        input[type="text"], input[type="number"] {
+            text-align: left; /* الكتابة على اليسار */
+            direction: ltr;   /* اتجاه الكتابة لليسار */
+        }
+        button {
+            display: block;
+            width: 200px;
+            margin: 20px auto;
+            padding: 10px;
+            font-size: 16px;
+            color: white;
+            background-color: #28a745;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            transition: background-color 0.3s;
+        }
+        button:hover {
+            background-color: #218838;
+        }
+    </style>
+    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+</head>
+<body>
+
+<h1>Termux Silence (Sox)</h1>
+<table>
+    <tr>
+        <td><input type="text" id="inputFile" placeholder="حدد مسار الملف" /></td>
+        <th>الملف الصوتي</th>
+    </tr>
+    <tr>
+        <td><input type="text" id="newFileName" placeholder="اسم الملف الجديد" /></td>
+        <th>اسم الجديد للملف</th>
+    </tr>
+    <tr>
+        <td>
+            <label><input type="radio" name="silenceStart" value="remove" checked /> تخطي</label><br>
+            <label><input type="radio" name="silenceStart" value="skip" /> إزالة</label>
+        </td>
+        <th>الصمت في البداية</th>
+    </tr>
+    <tr>
+        <td>
+            <select id="silenceDuration">
+                <option value="0.1">0.1 (إزالة صمت قصير)</option>
+                <option value="0.5">0.5 (إزالة صمت متوسط)</option>
+                <option value="1">1 (إزالة صمت طويل)</option>
+                <option value="custom">رقم مخصص</option>
+            </select>
+            <input type="number" placeholder="رقم مخصص" id="customSilenceDuration" style="display: none;" />
+        </td>
+        <th>مدة الصمت</th>
+    </tr>
+    <tr>
+        <td>
+            <select id="silenceVolume">
+                <option value="0.01">0.01% (صوت خافت جداً)</option>
+                <option value="0.05">0.05% (صوت منخفض)</option>
+                <option value="0.1" selected>0.1% (صوت هادئ)</option>
+                <option value="0.5">0.5% (صوت عادي)</option>
+                <option value="1">1% (صوت صاخب)</option>
+                <option value="custom">رقم مخصص</option>
+            </select>
+            <input type="number" placeholder="رقم مخصص" id="customSilenceVolume" style="display: none;" />
+        </td>
+        <th>نسبة الصوت</th>
+    </tr>
+    <tr>
+        <td>
+            <label><input type="radio" name="silenceCount" value="all" checked /> الكل</label><br>
+            <label><input type="radio" name="silenceCount" value="custom" /> كتابة عدد معين</label>
+            <input type="number" id="customSilenceCount" placeholder="عدد معين" style="display: none;" />
+        </td>
+        <th>مرات الصمت</th>
+    </tr>
+</table>
+
+<button id="generateCode">إنهاء</button>
+
+<script>
+    document.getElementById('newFileName').addEventListener('input', function() {
+        this.value = this.value.replace(/\s/g, '');
+        if (this.value.length > 12) {
+            this.value = this.value.slice(0, 12);
+        }
+    });
+
+    document.getElementById('inputFile').addEventListener('input', function() {
+        if (this.value.includes(' ')) {
+            this.style.borderColor = 'red';
+        } else {
+            this.style.borderColor = '';
+        }
+    });
+
+    document.getElementById('generateCode').addEventListener('click', function() {
+        const inputFile = document.getElementById('inputFile').value.trim();
+        const newFileName = document.getElementById('newFileName').value.trim();
+
+        if (!inputFile || !newFileName) {
+            Swal.fire({
+                title: 'خطأ',
+                text: 'يرجى تحديد مسار الملف واسم الملف الجديد.',
+                icon: 'error',
+                confirmButtonText: 'موافق'
+            });
+            return;
+        }
+
+        const namePattern = /^[a-zA-Z0-9_.-]{1,12}$/;
+        if (!namePattern.test(newFileName)) {
+            Swal.fire({
+                title: 'خطأ',
+                text: 'اسم الملف يجب أن يكون كلمة واحدة فقط وأقصاها 12 حرفًا.',
+                icon: 'error',
+                confirmButtonText: 'موافق'
+            });
+            return;
+        }
+
+        const pathPattern = /^\/[a-zA-Z0-9_.-]+(\/[a-zA-Z0-9_.-]+)*\/?[a-zA-Z0-9_.-]+\.(mp3|wav|ogg|flac)$/;
+        if (!pathPattern.test(inputFile)) {
+            Swal.fire({
+                title: 'خطأ',
+                text: 'يرجى إدخال مسار ملف صحيح بدون مسافات، مثل: /storage/emulated/0/w.mp3',
+                icon: 'error',
+                confirmButtonText: 'موافق'
+            });
+            return;
+        }
+
+        const pathParts = inputFile.split('/');
+        pathParts.pop();
+        const newFilePath = [...pathParts, newFileName.endsWith('.mp3') ? newFileName : `${newFileName}.mp3`].join('/');
+
+        const silenceStart = document.querySelector('input[name="silenceStart"]:checked').value;
+
+        const silenceDuration = document.getElementById('silenceDuration').value === "custom" 
+            ? document.getElementById('customSilenceDuration').value 
+            : document.getElementById('silenceDuration').value;
+
+        if (!silenceDuration || (document.getElementById('silenceDuration').value === "custom" && !document.getElementById('customSilenceDuration').value)) {
+            Swal.fire({
+                title: 'خطأ',
+                text: 'يرجى إدخال قيمة صحيحة لمدة الصمت.',
+                icon: 'error',
+                confirmButtonText: 'موافق'
+            });
+            return;
+        }
+
+        let silenceVolume = document.getElementById('silenceVolume').value === "custom" 
+            ? document.getElementById('customSilenceVolume').value + "%" 
+            : document.getElementById('silenceVolume').value + "%";
+
+        if (!silenceVolume || (document.getElementById('silenceVolume').value === "custom" && !document.getElementById('customSilenceVolume').value)) {
+            Swal.fire({
+                title: 'خطأ',
+                text: 'يرجى إدخال قيمة صحيحة لنسبة الصوت.',
+                icon: 'error',
+                confirmButtonText: 'موافق'
+            });
+            return;
+        }
+
+        let silenceCount;
+        if (document.querySelector('input[name="silenceCount"]:checked').value === "custom") {
+            silenceCount = document.getElementById('customSilenceCount').value;
+            if (!silenceCount) {
+                Swal.fire({
+                    title: 'خطأ',
+                    text: 'يرجى إدخال قيمة صحيحة لمرات الصمت.',
+                    icon: 'error',
+                    confirmButtonText: 'موافق'
+                });
+                return;
+            }
+        } else {
+            silenceCount = "-1";
+        }
+
+        const code = `sox ${inputFile} ${newFilePath} silence ${silenceStart === 'remove' ? '1' : '0'} ${silenceDuration} ${silenceVolume} ${silenceCount} ${silenceDuration} ${silenceVolume}`;
+
+        Swal.fire({
+            title: 'كود Sox',
+            text: code,
+            icon: 'info',
+            showCancelButton: true,
+            confirmButtonText: 'نسخ الكود',
+            cancelButtonText: 'إغلاق'
+        }).then((result) => {
+            if (result.isConfirmed) {
+                navigator.clipboard.writeText(code).then(() => {
+                    Swal.fire('تم النسخ!', 'تم نسخ الكود إلى الحافظة.', 'success');
+                }, () => {
+                    Swal.fire('خطأ', 'فشل في نسخ الكود.', 'error');
+                });
+            }
+        });
+    });
+
+    document.getElementById('silenceDuration').addEventListener('change', function() {
+        document.getElementById('customSilenceDuration').style.display = this.value === 'custom' ? 'block' : 'none';
+    });
+
+    document.getElementById('silenceVolume').addEventListener('change', function() {
+        document.getElementById('customSilenceVolume').style.display = this.value === 'custom' ? 'block' : 'none';
+    });
+
+    document.querySelector('input[name="silenceCount"][value="custom"]').addEventListener('change', function() {
+        document.getElementById('customSilenceCount').style.display = this.checked ? 'block' : 'none';
+    });
+</script>
+
+</body>
+</html>
